@@ -1,0 +1,33 @@
+{
+  "hostname": "my-arch-system",
+  "timezone": "UTC",
+  "locale": "en_US.UTF-8",
+  "aur": [
+    {
+      "enable": true,
+      "helper": "yay"
+    },
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "password_hash": "$6$rounds=5000$Kr6I87hg28Jb58Wg$0vwNn.J8tW5ABdA2e/r3dr3DxuQY5Ynka8AYt.pRR1pg5cd/4wJyt7Wi2gdMhL18mZft9qqR6vevOgAn5YjwR.",
+      "sudo": true
+    },
+  ],
+  "packages": [
+    "vim",
+    "git",
+    "base-devel",
+    "networkmanager",
+    "curl",
+    "htop",
+    "neofetch"
+  ],
+  "services": [
+    "NetworkManager",
+    "systemd-timesyncd"
+  ]
+}
+
+

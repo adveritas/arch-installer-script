@@ -132,6 +132,12 @@ echo "Set root password: "
 arch-chroot /mnt passwd
 
 
+# Enable Services
+systemctl --root /mnt enable systemd-resolved systemd-timesyncd NetworkManager
+
+systemctl --root /mnt mask systemd-networkd
+
+
 # Remove leftovers
 rm /mnt/boot/initramfs-linux-fallback.img
 
