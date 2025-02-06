@@ -2,10 +2,11 @@
   "hostname": "my-arch-system",
   "timezone": "UTC",
   "locale": "en_US.UTF-8",
-  "aur": [
+  "pkgsources": [
     {
-      "enable": true,
-      "helper": "yay"
+      "aur": true,
+      "helper": "yay",
+      "flatpak": true
     },
   ],
   "users": [

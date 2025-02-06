@@ -32,7 +32,7 @@ locale=$(jq -r '.locale' "$config_file")
 users=$(jq -r '.users' "$config_file")
 packages=$(jq -r '.packages' "$config_file")
 services=$(jq -r '.services' "$config_file")
-aur=$(jq -r '.aur' "$config_file")
+pkgsources=$(jq -r '.pkgsources' "$config_file")
 
 
 # Set the hostname
