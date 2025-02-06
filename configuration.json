@@ -11,8 +11,8 @@
   ],
   "users": [
     {
-      "username": "admin",
-      "password_hash": "$6$rounds=5000$Kr6I87hg28Jb58Wg$0vwNn.J8tW5ABdA2e/r3dr3DxuQY5Ynka8AYt.pRR1pg5cd/4wJyt7Wi2gdMhL18mZft9qqR6vevOgAn5YjwR.",
+      "username": "wdreyer",
+      "password_hash": "$6$1l6X2Etdh3NuvsHg$i5jIrINhubpYLNXmk1A/IMC5Xs1h7v3TQem4m1hGhIDbuVNeaUDQM2G4.EGLjXqJjLSP77gJmSng3aCVutxsy1",
       "sudo": true
     },
   ],
