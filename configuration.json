@@ -1,20 +1,20 @@
 {
-  "hostname": "my-arch-system",
-  "timezone": "UTC",
+  "hostname": "archlinux",
+  "timezone": "America/New_York",
   "locale": "en_US.UTF-8",
   "pkgsources": [
     {
       "aur": true,
       "helper": "yay",
       "flatpak": true
-    },
+    }
   ],
   "users": [
     {
       "username": "wdreyer",
       "password_hash": "$6$1l6X2Etdh3NuvsHg$i5jIrINhubpYLNXmk1A/IMC5Xs1h7v3TQem4m1hGhIDbuVNeaUDQM2G4.EGLjXqJjLSP77gJmSng3aCVutxsy1",
       "sudo": true
-    },
+    }
   ],
   "packages": [
     "vim",
@@ -30,5 +30,3 @@
     "systemd-timesyncd"
   ]
 }
-
-
