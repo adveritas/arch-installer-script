@@ -101,7 +101,6 @@ if [ -f /etc/pacman.conf ] && [ ! -f /etc/pacman.conf.t2.bkp ]; then
 
     cp /etc/pacman.conf /etc/pacman.conf.t2.bkp
     sed -i "/^#Color/c\Color\nILoveCandy
-    /^#VerbosePkgLists/c\VerbosePkgLists
     /^#ParallelDownloads/c\ParallelDownloads = 5" /etc/pacman.conf
     sed -i '/^#\[multilib\]/,+1 s/^#//' /etc/pacman.conf
 
