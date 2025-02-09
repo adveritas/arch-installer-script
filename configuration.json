@@ -1,14 +1,14 @@
 {
-  "disk": "/dev/sda",
+  "disk": "/dev/vda",
   "hostname": "archlinux",
   "timezone": "America/New_York",
   "locale": "en_US.UTF-8",
-  "networking": "iwd",
+  "networking": "default",
   "root_pass_hash": "$6$1l6X2Etdh3NuvsHg$i5jIrINhubpYLNXmk1A/IMC5Xs1h7v3TQem4m1hGhIDbuVNeaUDQM2G4.EGLjXqJjLSP77gJmSng3aCVutxsy1",
   "pacman": {
     "tweaks": true,
-    "aur": true,
-    "helper": "yay"
+    "aur": false,
+    "helper": "paru"
   },
   "users": [
     {
@@ -18,7 +18,6 @@
     }
   ],
   "packages": [
-    "git",
     "fastfetch"
   ],
   "services": [

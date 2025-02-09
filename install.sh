@@ -191,7 +191,7 @@ done
 
 
 # Pacman configuration
-if [ -f /etc/pacman.conf ] && [ ! -f /etc/pacman.conf.back ] && [ "$(echo "$pacman" | jq -r '.tweaks')" == "true" ]; then
+if [ "$(echo "$pacman" | jq -r '.tweaks')" == "true" ]; then
     echo -e "Adding extra spice to pacman..."
 
     arch-chroot /mnt cp /etc/pacman.conf /etc/pacman.conf.back
@@ -201,9 +201,6 @@ if [ -f /etc/pacman.conf ] && [ ! -f /etc/pacman.conf.back ] && [ "$(echo "$pacm
 
     arch-chroot /mnt pacman -Syyu
     arch-chroot /mnt pacman -Fy
-
-else
-    echo -e "Pacman is already configured..."
 fi
 
 
@@ -215,14 +212,7 @@ if [ "$(echo "$pacman" | jq -r '.aur')" == "true" ]; then
     if [[ -n "$aur_helper" && "$aur_helper" != "null" ]]; then
         echo "Installing AUR helper: $aur_helper"
 
-        pacman -S --needed --noconfirm git
-        arch-chroot /mnt pacman -S --needed --noconfirm base-devel
-        git clone https://aur.archlinux.org/yay.git /mnt/tmp/yay
-        arch-chroot /mnt chgrp nobody /tmp/yay
-        arch-chroot /mnt chmod g+ws /tmp/yay
-        arch-chroot /mnt setfacl -m u::rwx,g::rwx /tmp/yay
-        arch-chroot /mnt setfacl -d --set u::rwx,g::rwx,o::- /tmp/yay
-        arch-chroot /mnt cd /tmp/yay && sudo -u nobody makepkg -sic --noconfirm
+     #install here
 
         echo "$aur_helper installation complete!"
     else
@@ -230,6 +220,7 @@ if [ "$(echo "$pacman" | jq -r '.aur')" == "true" ]; then
     fi
 else
     echo "AUR is disabled. Skipping..."
+fi
 
 
 # Packages
@@ -253,8 +244,6 @@ fi
 
 
 # Networking
-networking=$(jq -r '.networking' "$config_file")
-
 if [[ "$networking" == "iwd" ]]; then
     echo "Configuring iwd networking..."
     arch-chroot /mnt pacman -S --needed --noconfirm iwd
