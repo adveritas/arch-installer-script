@@ -8,6 +8,16 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 
+# Read configuration file
+read -p "Enter the path to the configuration file (e.g., config.json): " config_file
+
+# Check if the file exists
+if [ ! -f "$config_file" ]; then
+    echo "Error: $config_file does not exist."
+    exit 1
+fi
+
+
 # Install jq to parse configuration
 pacman -Sy
 pacman -S --needed --noconfirm jq
