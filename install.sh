@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 # Check for proper permissions
 if [ "$EUID" -ne 0 ]; then
 	echo "This script must be run as root. Please use sudo or switch to the root user."
@@ -7,10 +8,20 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 
-# User input for disk
-lsblk
+# Install jq to parse configuration
+pacman -Sy
+pacman -S --needed --noconfirm jq
 
-read -p "Enter the disk to install Arch Linux on (e.g., /dev/sda or /dev/nvme0n1): " disk
+
+# Assign configuration variables
+disk=$(jq -r '.disk' "$config_file")
+hostname=$(jq -r '.hostname' "$config_file")
+timezone=$(jq -r '.timezone' "$config_file")
+locale=$(jq -r '.locale' "$config_file")
+users=$(jq -r '.users' "$config_file")
+root_pass_hash=$(jq -r '.root_pass_hash' "$config_file")
+pacman=$(jq -r '.pacman' "$config_file")
+packages=$(jq -r '.packages' "$config_file")
 
 
 # Check if drive exists
@@ -30,19 +41,7 @@ fi
 
 # Set partition variables
 boot_partition="${disk}${part_prefix}1"
-
 root_partition="${disk}${part_prefix}2"
-
-
-# Confirm before wiping disk
-read -p "WARNING: This will completely and irrevocably wipe the contents of $disk. Are you sure you want to continue? (y/n): " confirm
-
-if [[ ! "$confirm" =~ ^[Yy](es)?$ ]]; then
-	echo "Aborting. Disk will not be wiped."
-	exit 1
-fi
-
-echo "Proceeding with installation to $disk..."
 
 
 # Format selected disk
@@ -77,6 +76,10 @@ mount --mkdir $boot_partition /mnt/efi
 
 # Begin installation with pacstrap
 pacstrap -K /mnt base linux linux-firmware cryptsetup btrfs-progs networkmanager
+
+
+# Generate fstab
+genfstab -U /mnt >> /mnt/etc/fstab
 
 
 # Get the UUID of the root partition (for LUKS decryption)
@@ -122,14 +125,81 @@ sed -i "s/'fallback'//" /mnt/etc/mkinitcpio.d/linux.preset
 arch-chroot /mnt mkinitcpio -P
 
 
-# Generate fstab
-genfstab -U /mnt >> /mnt/etc/fstab
+# Remove leftovers
+rm /mnt/boot/initramfs-linux-fallback.img
 
 
 # Set root password
-echo "Set root password: "
-
 arch-chroot /mnt passwd
+
+
+# Set the hostname
+echo "Setting the hostname to $hostname..."
+arch-chroot /mnt echo "$hostname" > /etc/hostname
+
+
+# Set the time zone
+echo "Setting the time zone to $timezone..."
+arch-chroot /mnt ln -sf /usr/share/zoneinfo/$timezone /etc/localtime
+arch-chroot /mnt hwclock --systohc
+
+
+# Set the locale
+echo "Setting the locale to $locale..."
+arch-chroot /mnt sed -i "s/^#$locale/$locale/" /etc/locale.gen
+arch-chroot /mnt locale-gen
+arch-chroot /mnt echo "LANG=$locale" > /etc/locale.conf
+
+
+# Create users from the JSON file
+for user in $(echo "$users" | jq -r '.[] | @base64'); do
+    _jq() {
+        echo ${user} | base64 --decode | jq -r ${1}
+    }
+
+    username=$(_jq '.username')
+    password_hash=$(_jq '.password_hash')
+    sudo=$(_jq '.sudo')
+
+    echo "Creating user $username..."
+    arch-chroot /mnt useradd -m "$username"
+
+    # Set the password using the hashed password from the JSON file
+    arch-chroot /mnt echo "$username:$password_hash" | chpasswd -e
+
+    # Grant sudo access if specified in the JSON
+    if [ "$sudo" == "true" ]; then
+        arch-chroot /mnt mkdir -p /etc/sudoers.d
+	arch-chroot /mnt echo "%wheel ALL=(ALL) ALL" > /etc/sudoers.d/wheel
+
+	arch-chroot /mnt pacman -S --needed --noconfirm sudo
+        arch-chroot /mnt usermod -aG wheel $username
+    fi
+done
+
+
+# Pacman configuration
+if [ -f /etc/pacman.conf ] && [ ! -f /etc/pacman.conf.back ] && [ "$(echo "$pacman" | jq -r '.tweaks')" == "true" ]; then
+    echo -e "Adding extra spice to pacman..."
+
+    arch-chroot /mnt cp /etc/pacman.conf /etc/pacman.conf.back
+    arch-chroot /mnt sed -i '/^#Color/c\Color\nILoveCandy' /etc/pacman.conf
+    arch-chroot /mnt sed -i '/^#ParallelDownloads/c\ParallelDownloads = 5' /etc/pacman.conf
+    arch-chroot /mnt sed -i '/^#\[multilib\]/,+1 s/^#//' /etc/pacman.conf
+
+    arch-chroot /mnt pacman -Syyu
+    arch-chroot /mnt pacman -Fy
+
+else
+    echo -e "Pacman is already configured..."
+fi
+
+
+
+
+
+
+
 
 
 # Enable Services
@@ -137,9 +207,6 @@ systemctl --root /mnt enable systemd-resolved systemd-timesyncd NetworkManager
 
 systemctl --root /mnt mask systemd-networkd
 
-
-# Remove leftovers
-rm /mnt/boot/initramfs-linux-fallback.img
 
 
 
