@@ -18,10 +18,12 @@ disk=$(jq -r '.disk' "$config_file")
 hostname=$(jq -r '.hostname' "$config_file")
 timezone=$(jq -r '.timezone' "$config_file")
 locale=$(jq -r '.locale' "$config_file")
-users=$(jq -r '.users' "$config_file")
+networking=$(jq -r '.networking' "$config_file")
 root_pass_hash=$(jq -r '.root_pass_hash' "$config_file")
+users=$(jq -r '.users' "$config_file")
 pacman=$(jq -r '.pacman' "$config_file")
-packages=$(jq -r '.packages' "$config_file")
+packages=$(jq -r '.packages[]' "$config_file")
+services=$(jq -r '.services[]' "$config_file")
 
 
 # Check if drive exists
@@ -75,7 +77,7 @@ mount --mkdir $boot_partition /mnt/efi
 
 
 # Begin installation with pacstrap
-pacstrap -K /mnt base linux linux-firmware cryptsetup btrfs-progs networkmanager
+pacstrap -K /mnt base linux linux-firmware cryptsetup btrfs-progs
 
 
 # Generate fstab
@@ -129,10 +131,6 @@ arch-chroot /mnt mkinitcpio -P
 rm /mnt/boot/initramfs-linux-fallback.img
 
 
-# Set root password
-arch-chroot /mnt passwd
-
-
 # Set the hostname
 echo "Setting the hostname to $hostname..."
 arch-chroot /mnt echo "$hostname" > /etc/hostname
@@ -149,6 +147,10 @@ echo "Setting the locale to $locale..."
 arch-chroot /mnt sed -i "s/^#$locale/$locale/" /etc/locale.gen
 arch-chroot /mnt locale-gen
 arch-chroot /mnt echo "LANG=$locale" > /etc/locale.conf
+
+
+# Set root password
+echo "root:$root_pass_hash" | arch-chroot /mnt chpasswd -e
 
 
 # Create users from the JSON file
@@ -170,9 +172,9 @@ for user in $(echo "$users" | jq -r '.[] | @base64'); do
     # Grant sudo access if specified in the JSON
     if [ "$sudo" == "true" ]; then
         arch-chroot /mnt mkdir -p /etc/sudoers.d
-	arch-chroot /mnt echo "%wheel ALL=(ALL) ALL" > /etc/sudoers.d/wheel
+		arch-chroot /mnt echo "%wheel ALL=(ALL) ALL" > /etc/sudoers.d/wheel
 
-	arch-chroot /mnt pacman -S --needed --noconfirm sudo
+		arch-chroot /mnt pacman -S --needed --noconfirm sudo
         arch-chroot /mnt usermod -aG wheel $username
     fi
 done
@@ -195,17 +197,72 @@ else
 fi
 
 
+# Check if AUR is enabled and install helper
+if [ "$(echo "$pacman" | jq -r '.aur')" == "true" ]; then
+    aur_helper=$(echo "$pacman" | jq -r '.helper')
+    pacman -S --needed --noconfirm base-devel
+
+    if [[ -n "$aur_helper" && "$aur_helper" != "null" ]]; then
+        echo "Installing AUR helper: $aur_helper"
+
+        pacman -S --needed --noconfirm git
+        arch-chroot /mnt pacman -S --needed --noconfirm base-devel
+        git clone https://aur.archlinux.org/yay.git /mnt/tmp/yay
+        arch-chroot /mnt chgrp nobody /tmp/yay
+        arch-chroot /mnt chmod g+ws /tmp/yay
+        arch-chroot /mnt setfacl -m u::rwx,g::rwx /tmp/yay
+        arch-chroot /mnt setfacl -d --set u::rwx,g::rwx,o::- /tmp/yay
+        arch-chroot /mnt cd /tmp/yay && sudo -u nobody makepkg -sic --noconfirm
+
+        echo "$aur_helper installation complete!"
+    else
+        echo "No AUR helper specified. Skipping..."
+    fi
+else
+    echo "AUR is disabled. Skipping..."
 
 
-
-
-
+# Packages
+if [[ -n "$packages" ]]; then
+    echo "Installing packages: $packages"
+    arch-chroot /mnt pacman -S --needed --noconfirm $packages
+else
+    echo "No packages to install."
+fi
 
 
 # Enable Services
-systemctl --root /mnt enable systemd-resolved systemd-timesyncd NetworkManager
+if [[ -n "$services" ]]; then
+    echo "Enabling services: $services"
+    for service in $services; do
+        arch-chroot /mnt systemctl enable "$service"
+    done
+else
+    echo "No services to enable."
+fi
 
-systemctl --root /mnt mask systemd-networkd
+
+# Networking
+networking=$(jq -r '.networking' "$config_file")
+
+if [[ "$networking" == "iwd" ]]; then
+    echo "Configuring iwd networking..."
+    arch-chroot /mnt pacman -S --needed --noconfirm iwd
+    arch-chroot /mnt systemctl enable iwd systemd-resolved
+    arch-chroot /mnt systemctl mask systemd-networkd
+
+elif [[ "$networking" == "nm" ]]; then
+    echo "Configuring NetworkManager networking..."
+    arch-chroot /mnt pacman -S --needed --noconfirm networkmanager
+    arch-chroot /mnt systemctl enable NetworkManager systemd-resolved
+    arch-chroot /mnt systemctl mask systemd-networkd
+
+else
+    echo "Default networking setup requested. No changes made."
+fi
+
+
+
 
 
 
