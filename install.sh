@@ -170,21 +170,20 @@ for user in $(echo "$users" | jq -r '.[] | @base64'); do
     }
 
     username=$(_jq '.username')
-    password_hash=$(_jq '.password_hash')
+    pass_hash=$(_jq '.pass_hash')
     sudo=$(_jq '.sudo')
 
     echo "Creating user $username..."
     arch-chroot /mnt useradd -m "$username"
 
     # Set the password using the hashed password from the JSON file
-    arch-chroot /mnt echo "$username:$password_hash" | chpasswd -e
+    arch-chroot /mnt echo "$username:$pass_hash" | chpasswd -e
 
     # Grant sudo access if specified in the JSON
     if [ "$sudo" == "true" ]; then
-        arch-chroot /mnt mkdir -p /etc/sudoers.d
-		arch-chroot /mnt echo "%wheel ALL=(ALL) ALL" > /etc/sudoers.d/wheel
-
 		arch-chroot /mnt pacman -S --needed --noconfirm sudo
+		arch-chroot /mnt mkdir -p /etc/sudoers.d
+		arch-chroot /mnt echo "%wheel ALL=(ALL) ALL" > /etc/sudoers.d/wheel
         arch-chroot /mnt usermod -aG wheel $username
     fi
 done
@@ -207,12 +206,16 @@ fi
 # Check if AUR is enabled and install helper
 if [ "$(echo "$pacman" | jq -r '.aur')" == "true" ]; then
     aur_helper=$(echo "$pacman" | jq -r '.helper')
-    pacman -S --needed --noconfirm base-devel
 
     if [[ -n "$aur_helper" && "$aur_helper" != "null" ]]; then
         echo "Installing AUR helper: $aur_helper"
-
-     #install here
+		pacman -S --needed --noconfirm git
+		arch-chroot /mnt pacman -S --needed --noconfirm base-devel sudo
+		git clone https://aur.archlinux.org/$aur_helper.git /mnt/yay
+		chmod -R 777 /mnt/$aur_helper
+		arch-chroot /mnt useradd aur
+		arch-chroot /mnt su - aur -c "cd /$aur_helper && makepkg -s"
+		arch-chroot /mnt userdel aur
 
         echo "$aur_helper installation complete!"
     else

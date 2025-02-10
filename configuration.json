@@ -7,7 +7,7 @@
   "root_pass_hash": "$6$1l6X2Etdh3NuvsHg$i5jIrINhubpYLNXmk1A/IMC5Xs1h7v3TQem4m1hGhIDbuVNeaUDQM2G4.EGLjXqJjLSP77gJmSng3aCVutxsy1",
   "pacman": {
     "tweaks": true,
-    "aur": false,
+    "aur": true,
     "helper": "paru"
   },
   "users": [
@@ -18,7 +18,7 @@
     }
   ],
   "packages": [
-    "fastfetch"
+
   ],
   "services": [
   ]
