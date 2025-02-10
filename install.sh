@@ -143,7 +143,7 @@ rm /mnt/boot/initramfs-linux-fallback.img
 
 # Set the hostname
 echo "Setting the hostname to $hostname..."
-arch-chroot /mnt echo "$hostname" > /etc/hostname
+echo "$hostname" > /mnt/etc/hostname
 
 
 # Set the time zone
@@ -154,9 +154,9 @@ arch-chroot /mnt hwclock --systohc
 
 # Set the locale
 echo "Setting the locale to $locale..."
-arch-chroot /mnt sed -i "s/^#$locale/$locale/" /etc/locale.gen
+sed -i "s/^#$locale/$locale/" /mnt/etc/locale.gen
 arch-chroot /mnt locale-gen
-arch-chroot /mnt echo "LANG=$locale" > /etc/locale.conf
+echo "LANG=$locale" > /mnt/etc/locale.conf
 
 
 # Set root password
@@ -177,51 +177,38 @@ for user in $(echo "$users" | jq -r '.[] | @base64'); do
     arch-chroot /mnt useradd -m "$username"
 
     # Set the password using the hashed password from the JSON file
-    echo "$username:$pass_hash" | arch-chroot /mnt chpasswd -e
+    arch-chroot /mnt usermod --password '$pass_hash' $user
 
     # Grant sudo access if specified in the JSON
     if [ "$sudo" == "true" ]; then
 		arch-chroot /mnt pacman -S --needed --noconfirm sudo
-		sed -i 's/^#\s*\(%wheel ALL=(ALL:ALL) ALL\)/\1/' /etc/sudoers
+		sed -i 's/^#\s*\(%wheel ALL=(ALL:ALL) ALL\)/\1/' /mnt/etc/sudoers
         arch-chroot /mnt usermod -aG wheel $username
     fi
 done
 
 
-# Pacman configuration
-if [ "$(echo "$pacman" | jq -r '.tweaks')" == "true" ]; then
-    echo -e "Adding extra spice to pacman..."
-
-    arch-chroot /mnt cp /etc/pacman.conf /etc/pacman.conf.back
-    arch-chroot /mnt sed -i '/^#Color/c\Color\nILoveCandy' /etc/pacman.conf
-    arch-chroot /mnt sed -i '/^#ParallelDownloads/c\ParallelDownloads = 5' /etc/pacman.conf
-    arch-chroot /mnt sed -i '/^#\[multilib\]/,+1 s/^#//' /etc/pacman.conf
-
-    arch-chroot /mnt pacman -Syyu
-    arch-chroot /mnt pacman -Fy
+# Backup pacman configuration
+if [ "$(echo "$pacman" | jq -r '.multilib')" == "true" ] or [ "$(echo "$pacman" | jq -r '.tweaks')" == "true" ]; then
+    cp /mnt/etc/pacman.conf /mnt/etc/pacman.conf.back
 fi
 
 
-# Check if AUR is enabled and install helper
-if [ "$(echo "$pacman" | jq -r '.aur')" == "true" ]; then
-    aur_helper=$(echo "$pacman" | jq -r '.helper')
+# Pacman tweaks
+if [ "$(echo "$pacman" | jq -r '.tweaks')" == "true" ]; then
+    echo -e "Adding extra spice to pacman..."
+    arch-chroot /mnt sed -i '/^#Color/c\Color\nILoveCandy' /etc/pacman.conf
+    arch-chroot /mnt sed -i '/^#ParallelDownloads/c\ParallelDownloads = 5' /etc/pacman.conf
+fi
 
-    if [[ -n "$aur_helper" && "$aur_helper" != "null" ]]; then
-        echo "Installing AUR helper: $aur_helper"
-		pacman -S --needed --noconfirm git
-		arch-chroot /mnt pacman -S --needed --noconfirm base-devel sudo
-		git clone https://aur.archlinux.org/$aur_helper.git /mnt/$aur_helper
-		chmod -R 777 /mnt/$aur_helper
-		arch-chroot /mnt useradd -m aur
-		arch-chroot /mnt su - aur -c "cd /$aur_helper && makepkg -s"
-		arch-chroot /mnt userdel aur
 
-        echo "$aur_helper installation complete!"
-    else
-        echo "No AUR helper specified. Skipping..."
-    fi
-else
-    echo "AUR is disabled. Skipping..."
+# Multilib repo
+if [ "$(echo "$pacman" | jq -r '.multilib')" == "true" ]; then
+    echo -e "Adding extra spice to pacman..."
+
+    arch-chroot /mnt sed -i '/^#\[multilib\]/,+1 s/^#//' /etc/pacman.conf
+    arch-chroot /mnt pacman -Syyu
+    arch-chroot /mnt pacman -Fy
 fi
 
 
