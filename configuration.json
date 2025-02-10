@@ -4,7 +4,7 @@
   "timezone": "America/New_York",
   "locale": "en_US.UTF-8",
   "networking": "default",
-  "root_pass_hash": "907a66cdce03657fb5fd4de1daea96b2054367d79f5af1f869433c46ca836b9095f732c9993fd5f531fab408c2b6900afbc79361c09abc4a038fcaa15b6b39f7",
+  "root_pass_hash": "$6$Dr.mLwFPTNNioSc1$6PXMOUHcfYcLpc88MBVL9JBc19fxtUrjfpASsJQFeWt7KA4ujp6TAfmAK8x6RChztUfaug8C6N8ZXEpRL1BPF0",
   "pacman": {
     "tweaks": true,
     "aur": false,
@@ -13,7 +13,7 @@
   "users": [
     {
       "username": "wdreyer",
-      "pass_hash": "907a66cdce03657fb5fd4de1daea96b2054367d79f5af1f869433c46ca836b9095f732c9993fd5f531fab408c2b6900afbc79361c09abc4a038fcaa15b6b39f7",
+      "pass_hash": "$6$Dr.mLwFPTNNioSc1$6PXMOUHcfYcLpc88MBVL9JBc19fxtUrjfpASsJQFeWt7KA4ujp6TAfmAK8x6RChztUfaug8C6N8ZXEpRL1BPF0",
       "sudo": true
     }
   ],
