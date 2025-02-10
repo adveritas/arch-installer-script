@@ -177,13 +177,12 @@ for user in $(echo "$users" | jq -r '.[] | @base64'); do
     arch-chroot /mnt useradd -m "$username"
 
     # Set the password using the hashed password from the JSON file
-    arch-chroot /mnt echo "$username:$pass_hash" | chpasswd -e
+    echo "$username:$pass_hash" | arch-chroot /mnt chpasswd -e
 
     # Grant sudo access if specified in the JSON
     if [ "$sudo" == "true" ]; then
 		arch-chroot /mnt pacman -S --needed --noconfirm sudo
-		arch-chroot /mnt mkdir -p /etc/sudoers.d
-		arch-chroot /mnt echo "%wheel ALL=(ALL) ALL" > /etc/sudoers.d/wheel
+		sed -i 's/^#\s*\(%wheel ALL=(ALL:ALL) ALL\)/\1/' /etc/sudoers
         arch-chroot /mnt usermod -aG wheel $username
     fi
 done
@@ -211,9 +210,9 @@ if [ "$(echo "$pacman" | jq -r '.aur')" == "true" ]; then
         echo "Installing AUR helper: $aur_helper"
 		pacman -S --needed --noconfirm git
 		arch-chroot /mnt pacman -S --needed --noconfirm base-devel sudo
-		git clone https://aur.archlinux.org/$aur_helper.git /mnt/yay
+		git clone https://aur.archlinux.org/$aur_helper.git /mnt/$aur_helper
 		chmod -R 777 /mnt/$aur_helper
-		arch-chroot /mnt useradd aur
+		arch-chroot /mnt useradd -m aur
 		arch-chroot /mnt su - aur -c "cd /$aur_helper && makepkg -s"
 		arch-chroot /mnt userdel aur
 
